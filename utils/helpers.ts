@@ -2,6 +2,11 @@ import { Page, expect } from '@playwright/test';
 
 export async function assertNoCriticalConsoleErrors(page: Page): Promise<void> {
   const errors: string[] = [];
+
+  page.on('pageerror', err => {
+    errors.push(String(err));
+  });
+
   page.on('console', msg => {
     if (msg.type() === 'error') {
       const text = msg.text();
@@ -11,8 +16,8 @@ export async function assertNoCriticalConsoleErrors(page: Page): Promise<void> {
     }
   });
 
-  await page.waitForTimeout(200);
-  expect(errors, `Console errors detected:\n${errors.join('\n')}`).toEqual([]);
+  await page.waitForTimeout(250);
+  expect(errors, `Console/Page errors detected:\n${errors.join('\n')}`).toEqual([]);
 }
 
 export async function openAndAssertLive(page: Page, path: string): Promise<void> {

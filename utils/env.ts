@@ -8,6 +8,6 @@ export function envBool(name: string, fallback = false): boolean {
   return ['1', 'true', 'yes', 'on'].includes(raw.toLowerCase());
 }
 
-export function hasAuthCreds(): boolean {
+export function hasCompanyCreds(): boolean {
   return Boolean(process.env.COMPANY_EMAIL && process.env.COMPANY_PASSWORD);
 }

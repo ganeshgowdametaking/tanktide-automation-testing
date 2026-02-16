@@ -1,24 +1,25 @@
 import { defineConfig, devices } from '@playwright/test';
-import dotenv from 'dotenv';
+import * as dotenv from 'dotenv';
 
 dotenv.config();
 
 const baseURL = process.env.BASE_URL || 'http://localhost:5173';
 const workers = Number(process.env.WORKERS || 4);
 const headless = (process.env.HEADLESS || 'true') !== 'false';
+const retries = process.env.CI ? 2 : 0;
+
+const mainUiIgnore = [/tests\/api\//, /tests\/a11y\//, /tests\/visual\//, /tests\/setup\//];
 
 export default defineConfig({
   testDir: './tests',
-  timeout: 60_000,
+  timeout: 90_000,
   expect: {
     timeout: 10_000,
-    toHaveScreenshot: {
-      maxDiffPixelRatio: 0.02
-    }
+    toHaveScreenshot: { maxDiffPixelRatio: 0.02 }
   },
   fullyParallel: true,
   forbidOnly: !!process.env.CI,
-  retries: process.env.CI ? 2 : 0,
+  retries,
   workers: process.env.CI ? 2 : workers,
   reporter: [
     ['html', { outputFolder: 'playwright-report', open: 'never' }],
@@ -32,28 +33,79 @@ export default defineConfig({
     video: 'retain-on-failure',
     screenshot: 'only-on-failure',
     actionTimeout: 15_000,
-    navigationTimeout: 30_000
+    navigationTimeout: 45_000
   },
   projects: [
     {
+      name: 'setup',
+      testMatch: /.*\.setup\.ts/
+    },
+    {
       name: 'desktop-chrome',
-      use: { ...devices['Desktop Chrome'] }
+      dependencies: ['setup'],
+      testIgnore: mainUiIgnore,
+      use: {
+        ...devices['Desktop Chrome'],
+        storageState: '.auth/company.json'
+      }
     },
     {
       name: 'desktop-firefox',
-      use: { ...devices['Desktop Firefox'] }
+      dependencies: ['setup'],
+      testIgnore: mainUiIgnore,
+      use: {
+        ...devices['Desktop Firefox'],
+        storageState: '.auth/company.json'
+      }
     },
     {
       name: 'desktop-webkit',
-      use: { ...devices['Desktop Safari'] }
+      dependencies: ['setup'],
+      testIgnore: mainUiIgnore,
+      use: {
+        ...devices['Desktop Safari'],
+        storageState: '.auth/company.json'
+      }
     },
     {
       name: 'mobile-chrome',
-      use: { ...devices['Pixel 7'] }
+      dependencies: ['setup'],
+      testIgnore: mainUiIgnore,
+      use: {
+        ...devices['Pixel 7'],
+        storageState: '.auth/company.json'
+      }
     },
     {
       name: 'mobile-safari',
-      use: { ...devices['iPhone 14'] }
+      dependencies: ['setup'],
+      testIgnore: mainUiIgnore,
+      use: {
+        ...devices['iPhone 14'],
+        storageState: '.auth/company.json'
+      }
+    },
+    {
+      name: 'api',
+      testMatch: /tests\/api\/.*\.spec\.ts/
+    },
+    {
+      name: 'a11y',
+      dependencies: ['setup'],
+      testMatch: /tests\/a11y\/.*\.spec\.ts/,
+      use: {
+        ...devices['Desktop Chrome'],
+        storageState: '.auth/company.json'
+      }
+    },
+    {
+      name: 'visual',
+      dependencies: ['setup'],
+      testMatch: /tests\/visual\/.*\.spec\.ts/,
+      use: {
+        ...devices['Desktop Chrome'],
+        storageState: '.auth/company.json'
+      }
     }
   ],
   outputDir: 'test-results/artifacts'

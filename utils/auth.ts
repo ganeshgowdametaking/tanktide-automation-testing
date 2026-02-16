@@ -1,4 +1,4 @@
-import { Page } from '@playwright/test';
+import { Page, expect } from '@playwright/test';
 
 export async function loginAsCompany(page: Page, baseUrl: string): Promise<void> {
   const email = process.env.COMPANY_EMAIL;
@@ -10,43 +10,10 @@ export async function loginAsCompany(page: Page, baseUrl: string): Promise<void>
 
   await page.goto(`${baseUrl}/company-login`, { waitUntil: 'domcontentloaded' });
 
-  const emailSelectors = [
-    'input[type="email"]',
-    'input[name="email"]',
-    'input[placeholder*="Email" i]'
-  ];
-  const passwordSelectors = [
-    'input[type="password"]',
-    'input[name="password"]'
-  ];
-
-  for (const selector of emailSelectors) {
-    const loc = page.locator(selector).first();
-    if (await loc.isVisible().catch(() => false)) {
-      await loc.fill(email);
-      break;
-    }
-  }
-
-  for (const selector of passwordSelectors) {
-    const loc = page.locator(selector).first();
-    if (await loc.isVisible().catch(() => false)) {
-      await loc.fill(password);
-      break;
-    }
-  }
-
-  const submitCandidates = [
-    page.getByRole('button', { name: /log in|login|sign in/i }).first(),
-    page.locator('button[type="submit"]').first()
-  ];
-
-  for (const button of submitCandidates) {
-    if (await button.isVisible().catch(() => false)) {
-      await button.click();
-      break;
-    }
-  }
-
+  await page.getByLabel(/email address/i).fill(email);
+  await page.getByLabel(/password/i).fill(password);
+  await page.getByRole('button', { name: /sign in/i }).click();
   await page.waitForLoadState('networkidle');
+
+  await expect(page).toHaveURL(/\/company-dashboard|\/jobs/);
 }

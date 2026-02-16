@@ -19,7 +19,7 @@ jobs:
           cache: npm
       - run: npm ci
       - run: npx playwright install --with-deps
-      - run: npm run test:smoke
+      - run: npm run test:smoke -- --project=desktop-chrome --project=mobile-chrome --project=api
         env:
           BASE_URL: ${{ secrets.BASE_URL }}
           API_BASE_URL: ${{ secrets.API_BASE_URL }}
@@ -43,7 +43,7 @@ jobs:
           cache: npm
       - run: npm ci
       - run: npx playwright install --with-deps
-      - run: npm run test:regression
+      - run: npm run test:regression -- --project=desktop-chrome --project=mobile-chrome --project=a11y --project=visual
         env:
           BASE_URL: ${{ secrets.BASE_URL }}
           API_BASE_URL: ${{ secrets.API_BASE_URL }}

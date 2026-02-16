@@ -1,9 +1,9 @@
 import AxeBuilder from '@axe-core/playwright';
 import { test, expect } from '@playwright/test';
 
-const pages = ['/', '/privacy-policy', '/cookie-policy', '/terms'];
+const pages = ['/', '/privacy-policy', '/cookie-policy', '/terms', '/companies'];
 
-test.describe('Accessibility checks @regression', () => {
+test.describe('Accessibility baseline @regression', () => {
   for (const path of pages) {
     test(`a11y scan ${path}`, async ({ page }) => {
       await page.goto(path, { waitUntil: 'domcontentloaded' });

@@ -1,50 +1,72 @@
 # TankTide Automation Testing
 
-Standalone, production-grade QA automation framework for TankTide.
+Standalone, state-of-the-art QA automation framework for TankTide.
 
-## What this covers
-- End-to-end UI tests (desktop + mobile emulation)
-- API smoke/contract checks
-- Accessibility testing (axe)
+## Coverage model
+- E2E web UI (desktop + mobile emulation)
+- Authenticated workflow tests (company login, routing, create referral, applications ranking panel)
+- Main app workflow health (messages, notifications, settings)
+- API contract smoke tests
+- Accessibility checks (axe)
 - Visual regression snapshots
-- CI pipeline for PR smoke + nightly regression
+- CI for PR smoke and nightly regression
 
-## Tech stack
-- Playwright Test
+## Stack
+- Playwright Test + TypeScript
 - Axe Core Playwright
-- TypeScript
 - GitHub Actions
+
+## Project structure
+- `tests/setup`: auth/session bootstrap (`company-auth.setup.ts`)
+- `tests/e2e/core`: public pages + responsive shell
+- `tests/e2e/company`: company auth and referral flows
+- `tests/e2e/app`: authenticated app flows and AI ranking panel checks
+- `tests/api`: API contracts
+- `tests/a11y`: accessibility scans
+- `tests/visual`: snapshot baselines
+- `pages`: page objects
+- `fixtures`: deterministic test data + route inventories
+- `utils`: auth/env/helpers
 
 ## Quick start
 1. `cp .env.example .env`
-2. Set `BASE_URL` and optional auth/API values in `.env`
+2. Fill required values in `.env`
 3. `npm install`
 4. `npx playwright install --with-deps`
-5. Run tests:
-   - `npm run test:smoke`
-   - `npm run test:desktop`
-   - `npm run test:mobile`
-   - `npm run test:api`
-   - `npm run test:a11y`
-   - `npm run test:visual`
+5. Run:
+- Smoke: `npm run test:smoke`
+- Critical path: `npm run test:critical`
+- Full regression: `npm run test:regression`
+- Mobile only: `npm run test:mobile`
+- API only: `npm run test:api`
+- A11y only: `npm run test:a11y`
+- Visual only: `npm run test:visual`
 
-## Project layout
-- `tests/e2e`: browser flows and UI behavior
-- `tests/api`: backend endpoint checks
-- `tests/a11y`: accessibility scans
-- `tests/visual`: screenshot baseline tests
-- `fixtures/routes.json`: route inventory
-- `utils/`: shared helpers
-- `.github/workflows/qa.yml`: CI smoke and nightly regression
-
-## Environment variables
+## Required env
 - `BASE_URL` (required)
-- `API_BASE_URL` (optional, for API tests)
-- `COMPANY_EMAIL` / `COMPANY_PASSWORD` (for authenticated tests)
-- `TEST_REFERRAL_ID` (for applications ranking page checks)
-- `HEADLESS`, `WORKERS`
+
+## Optional env
+- `API_BASE_URL` for API tests
+- `COMPANY_EMAIL`, `COMPANY_PASSWORD` for authenticated flows
+- `TEST_REFERRAL_ID` for applications ranking page checks
+
+Authenticated specs auto-skip if credentials are not present.
+
+## CI secrets
+Configure in GitHub repository secrets:
+- `BASE_URL`
+- `API_BASE_URL`
+- `COMPANY_EMAIL`
+- `COMPANY_PASSWORD`
+- `TEST_REFERRAL_ID`
+
+## Keep route coverage in sync
+Generate route inventory from TankTide app router:
+
+```bash
+node scripts/generate-routes.mjs /Users/ganeshgowda/Desktop/TankTide/web/src/App.tsx
+```
 
 ## Notes
-- Authenticated tests auto-skip when credentials are not supplied.
-- Mobile and desktop run as separate projects in Playwright.
-- Reports are in `playwright-report` and `test-results`.
+- No changes are made to TankTide app code by this project.
+- Failures include trace/video/screenshot artifacts for debugging.
