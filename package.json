@@ -1,0 +1,24 @@
+{
+  "name": "tanktide-automation-testing",
+  "version": "1.0.0",
+  "private": true,
+  "description": "State-of-the-art end-to-end automation framework for TankTide",
+  "scripts": {
+    "test": "playwright test",
+    "test:smoke": "playwright test --grep @smoke",
+    "test:regression": "playwright test --grep @regression",
+    "test:mobile": "playwright test --project=mobile-chrome --project=mobile-safari",
+    "test:desktop": "playwright test --project=desktop-chrome --project=desktop-firefox --project=desktop-webkit",
+    "test:api": "playwright test tests/api",
+    "test:a11y": "playwright test tests/a11y",
+    "test:visual": "playwright test tests/visual",
+    "report": "playwright show-report",
+    "install:browsers": "playwright install --with-deps"
+  },
+  "devDependencies": {
+    "@axe-core/playwright": "^4.10.2",
+    "@playwright/test": "^1.55.0",
+    "dotenv": "^16.6.1",
+    "typescript": "^5.9.2"
+  }
+}

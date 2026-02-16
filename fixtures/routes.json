@@ -1,0 +1,17 @@
+[
+  { "path": "/", "name": "Home", "public": true },
+  { "path": "/privacy-policy", "name": "Privacy Policy", "public": true },
+  { "path": "/cookie-policy", "name": "Cookie Policy", "public": true },
+  { "path": "/terms", "name": "Terms", "public": true },
+  { "path": "/data-request", "name": "Data Request", "public": true },
+  { "path": "/companies", "name": "Companies Landing", "public": true },
+  { "path": "/company-signup", "name": "Company Signup", "public": true },
+  { "path": "/company-login", "name": "Company Login", "public": true },
+  { "path": "/jobs", "name": "Jobs", "public": false },
+  { "path": "/messages", "name": "Messages", "public": false },
+  { "path": "/notifications", "name": "Notifications", "public": false },
+  { "path": "/profile", "name": "Profile", "public": false },
+  { "path": "/settings", "name": "Settings", "public": false },
+  { "path": "/analytics", "name": "Analytics", "public": false },
+  { "path": "/create-referral", "name": "Create Referral", "public": false }
+]
