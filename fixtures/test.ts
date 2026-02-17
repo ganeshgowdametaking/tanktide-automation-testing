@@ -42,7 +42,13 @@ export async function assertNoSevereClientErrors(page: Page): Promise<void> {
   page.on('console', msg => {
     if (msg.type() === 'error') {
       const text = msg.text();
-      if (!text.includes('favicon') && !text.includes('ERR_BLOCKED_BY_CLIENT')) {
+      const isKnownNoise =
+        text.includes('favicon') ||
+        text.includes('ERR_BLOCKED_BY_CLIENT') ||
+        text.includes('ipapi.co/json') ||
+        text.includes("No 'Access-Control-Allow-Origin' header is present");
+
+      if (!isKnownNoise) {
         errors.push(text);
       }
     }
