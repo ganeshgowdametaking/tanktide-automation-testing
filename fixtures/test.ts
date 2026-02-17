@@ -34,9 +34,34 @@ export function requireCompanyCreds(): void {
 
 export async function assertNoSevereClientErrors(page: Page): Promise<void> {
   const errors: string[] = [];
+  const failedFirstPartyRequests: string[] = [];
+
+  const getOrigin = (u: string): string => {
+    try {
+      return new URL(u).origin;
+    } catch {
+      return '';
+    }
+  };
+
+  const currentOrigin = getOrigin(page.url());
 
   page.on('pageerror', err => {
     errors.push(String(err));
+  });
+
+  page.on('requestfailed', req => {
+    const url = req.url();
+    const failureText = req.failure()?.errorText || 'UNKNOWN_REQUEST_FAILURE';
+    const requestOrigin = getOrigin(url);
+    const isFirstParty = !!currentOrigin && requestOrigin === currentOrigin;
+    const isDataUrl = url.startsWith('data:');
+
+    // Third-party failures are common in local/dev due to CORS/adblock/network policy.
+    // First-party failures are treated as true regressions.
+    if (isFirstParty && !isDataUrl) {
+      failedFirstPartyRequests.push(`${failureText} :: ${url}`);
+    }
   });
 
   page.on('console', msg => {
@@ -46,7 +71,8 @@ export async function assertNoSevereClientErrors(page: Page): Promise<void> {
         text.includes('favicon') ||
         text.includes('ERR_BLOCKED_BY_CLIENT') ||
         text.includes('ipapi.co/json') ||
-        text.includes("No 'Access-Control-Allow-Origin' header is present");
+        text.includes("No 'Access-Control-Allow-Origin' header is present") ||
+        text.trim() === 'Failed to load resource: net::ERR_FAILED';
 
       if (!isKnownNoise) {
         errors.push(text);
@@ -55,5 +81,9 @@ export async function assertNoSevereClientErrors(page: Page): Promise<void> {
   });
 
   await page.waitForTimeout(300);
-  expect(errors, `Detected client-side errors:\n${errors.join('\n')}`).toEqual([]);
+  const combined = [
+    ...errors,
+    ...failedFirstPartyRequests.map(e => `FIRST_PARTY_REQUEST_FAILED: ${e}`)
+  ];
+  expect(combined, `Detected client-side errors:\n${combined.join('\n')}`).toEqual([]);
 }
