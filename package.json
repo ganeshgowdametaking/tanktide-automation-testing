@@ -1,0 +1,31 @@
+{
+  "name": "tanktide-automation-testing",
+  "version": "1.0.0",
+  "private": true,
+  "description": "State-of-the-art end-to-end automation framework for TankTide",
+  "scripts": {
+    "test": "playwright test",
+    "test:smoke": "playwright test --grep @smoke",
+    "test:regression": "playwright test --grep @regression",
+    "test:critical": "playwright test --grep @critical",
+    "test:public": "TEST_SCOPE=public playwright test --project=desktop-chrome --project=desktop-firefox --project=desktop-webkit --project=mobile-chrome --project=mobile-safari --project=a11y --project=visual",
+    "test:public:update-snapshots": "TEST_SCOPE=public playwright test --project=visual --update-snapshots",
+    "test:full": "TEST_SCOPE=full playwright test --project=desktop-chrome --project=desktop-firefox --project=desktop-webkit --project=mobile-chrome --project=mobile-safari --project=api --project=a11y --project=visual",
+    "test:human": "HEADLESS=false SLOW_MO_MS=1500 TEST_SCOPE=public playwright test tests/e2e/core/human-like-website-journey.spec.ts --project=desktop-chrome --workers=1",
+    "test:mobile": "playwright test --project=mobile-chrome --project=mobile-safari",
+    "test:desktop": "playwright test --project=desktop-chrome --project=desktop-firefox --project=desktop-webkit",
+    "test:api": "playwright test --project=api",
+    "test:a11y": "playwright test --project=a11y",
+    "test:visual": "playwright test --project=visual",
+    "test:headed": "playwright test --headed",
+    "report": "playwright show-report",
+    "typecheck": "tsc --noEmit",
+    "install:browsers": "playwright install --with-deps"
+  },
+  "devDependencies": {
+    "@axe-core/playwright": "^4.10.2",
+    "@playwright/test": "^1.55.0",
+    "dotenv": "^16.6.1",
+    "typescript": "^5.9.2"
+  }
+}
