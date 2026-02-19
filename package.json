@@ -11,7 +11,7 @@
     "test:public": "TEST_SCOPE=public playwright test --project=desktop-chrome --project=desktop-firefox --project=desktop-webkit --project=mobile-chrome --project=mobile-safari --project=a11y --project=visual",
     "test:public:update-snapshots": "TEST_SCOPE=public playwright test --project=visual --update-snapshots",
     "test:full": "TEST_SCOPE=full playwright test --project=desktop-chrome --project=desktop-firefox --project=desktop-webkit --project=mobile-chrome --project=mobile-safari --project=api --project=a11y --project=visual",
-    "test:human": "HEADLESS=false SLOW_MO_MS=1500 TEST_SCOPE=public playwright test tests/e2e/core/human-like-website-journey.spec.ts --project=desktop-chrome --workers=1",
+    "test:human": "HEADLESS=false TEST_SCOPE=public playwright test tests/e2e/core/human-like-website-journey.spec.ts --project=desktop-chrome --workers=1",
     "test:mobile": "playwright test --project=mobile-chrome --project=mobile-safari",
     "test:desktop": "playwright test --project=desktop-chrome --project=desktop-firefox --project=desktop-webkit",
     "test:api": "playwright test --project=api",
