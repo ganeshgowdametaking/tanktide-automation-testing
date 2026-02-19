@@ -1,56 +1,74 @@
 import { test, expect } from '../../../fixtures/test';
-import { PublicPage } from '../../../pages/public.page';
+import { CandidateAuthPage } from '../../../pages/candidate-auth.page';
 
-test.describe('Public Website Walker @slow-mo @public', () => {
-  let publicPage: PublicPage;
+test.describe('Candidate User Journey @slow-mo @candidate', () => {
+    let authPage: CandidateAuthPage;
 
-  test.beforeEach(async ({ page }) => {
-    publicPage = new PublicPage(page);
-    // Extra slow-mo for this specific test to make it super watchable
-    // extending the config's default
-  });
+    // Use env vars or defaults
+    const CANDIDATE_EMAIL = process.env.CANDIDATE_EMAIL;
+    const CANDIDATE_PASSWORD = process.env.CANDIDATE_PASSWORD;
 
-  test('Simulate a user browsing the website naturally', async ({ page }) => {
-    // 1. Start at Home
-    await test.step('Start at Home Page', async () => {
-      await publicPage.goto('/');
-      await expect(page).toHaveTitle(/.*TankTide|.*Home/i);
+    test.beforeEach(async ({ page }) => {
+        authPage = new CandidateAuthPage(page);
+        // Increase timeout for this long journey
+        test.setTimeout(120000);
     });
 
-    // 2. Define the journey
-    const journey = [
-      { name: 'Terms of Service', linkName: /terms of service/i, expectedUrl: /.*terms/ },
-      { name: 'Privacy Policy', linkName: /privacy policy/i, expectedUrl: /.*privacy/ },
-      // { name: 'Pricing', linkName: /pricing/i, expectedUrl: /.*pricing/ }, // If exists
-      // Note: Login buttons on this page are buttons, not links, so we handle them differently or 
-      // look for a specific "Link" role if available. 
-      // Based on snapshot, Login/Signup are buttons.
-    ];
-
-    // 3. Walk the journey
-    for (const step of journey) {
-      await test.step(`User navigates to ${step.name}`, async () => {
-        // Always start from home to ensure we can find the links
-        // (Simulates a user returning to the "hub" or using the nav bar)
-        await publicPage.goto('/');
-
-        const link = page.getByRole('link', { name: step.linkName }).first();
-        await expect(link).toBeVisible();
-
-        // Highlight the link before clicking so the user sees it
-        await link.scrollIntoViewIfNeeded();
-
-        await link.click();
-        await expect(page).toHaveURL(step.expectedUrl);
-
-        // Look around for a bit (implicit due to slowMo)
-        // Verify something specific
-        if (step.name === 'Sign In') {
-          await expect(page.getByRole('button', { name: /sign in|log in/i })).toBeVisible();
-        } else {
-          await expect(page.locator('h1, h2, h3').first()).toBeVisible();
+    test('Candidate logs in and browses the full application', async ({ page }) => {
+        // 1. Login
+        if (!CANDIDATE_EMAIL || !CANDIDATE_PASSWORD) {
+            test.skip(true, 'Skipping: CANDIDATE_EMAIL/PASSWORD not set');
+            return;
         }
-      });
-    }
-  });
+
+        await test.step('Login as Candidate', async () => {
+            await authPage.login(CANDIDATE_EMAIL, CANDIDATE_PASSWORD);
+
+            // FINAL STABILIZATION: Trust the URL and Key Page Elements
+            // 1. Verify URL is correct (Candidate usually lands on /jobs or /dashboard)
+            await expect(page).toHaveURL(/.*(jobs|dashboard)/, { timeout: 30000 });
+
+            // 2. Verify "Job Referrals" header is present (Key content)
+            await expect(page.locator('h1').filter({ hasText: /Job Referrals/i })).toBeVisible();
+
+            // 3. Verify typically logged-in header elements exist (generic check)
+            // We check for any link in the nav that implies a user profile or settings
+            const navLinks = page.locator('nav a, header a');
+            await expect(navLinks.filter({ hasText: /profile|settings|logout/i }).first()).toBeAttached();
+
+            console.log("Login verified: URL is correct and key content is loaded.");
+        });
+
+        // 2. Explicit Navigation to Core Pages (Force "Deep" Testing)
+
+        await test.step('Navigate to Jobs', async () => {
+            // Try clicking nav link first, fallback to URL
+            const jobsLink = page.getByRole('link', { name: /jobs|find work/i }).first();
+            if (await jobsLink.isVisible()) {
+                await jobsLink.click();
+            } else {
+                await page.goto('/jobs');
+            }
+            await expect(page).toHaveURL(/.*jobs/);
+            await expect(page.locator('h1, h2')).toBeVisible();
+        });
+
+        await test.step('Navigate to Messages', async () => {
+            await page.goto('/messages');
+            await expect(page).toHaveURL(/.*messages/);
+            await expect(page.locator('body')).toContainText(/messages|inbox/i);
+        });
+
+        await test.step('Navigate to Notifications', async () => {
+            await page.goto('/notifications');
+            await expect(page).toHaveURL(/.*notifications/);
+        });
+
+        await test.step('Navigate to Profile', async () => {
+            await page.goto('/profile');
+            await expect(page).toHaveURL(/.*profile/);
+            // Check for personal details or edit button
+            await expect(page.getByRole('button', { name: /edit|update/i }).first()).toBeVisible();
+        });
+    });
 });

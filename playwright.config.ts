@@ -38,7 +38,7 @@ export default defineConfig({
     baseURL,
     headless,
     launchOptions: {
-      slowMo: headless ? 0 : (slowMo || 3000)
+      slowMo: headless ? 0 : (slowMo || 500)
     },
     trace: 'retain-on-failure',
     video: 'retain-on-failure',
@@ -58,6 +58,15 @@ export default defineConfig({
       use: {
         ...devices['Desktop Chrome'],
         storageState: '.auth/company.json'
+      }
+    },
+    {
+      name: 'candidate-journey',
+      // No dependencies, so no company auth setup required
+      testMatch: /tests\/e2e\/core\/human-like-website-journey.spec.ts/,
+      use: {
+        ...devices['Desktop Chrome']
+        // uses default storage state (empty)
       }
     },
     {
