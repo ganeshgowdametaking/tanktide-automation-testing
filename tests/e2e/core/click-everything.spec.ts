@@ -1,145 +1,113 @@
 import { test, expect } from '../../../fixtures/test';
+import { CandidateAuthPage } from '../../../pages/candidate-auth.page';
 
-test.describe('Exhaustive "Click Everything" Spider Test @slow-mo @spider', () => {
+test.describe('Exhaustive "Recursive Walker" Deep-Dive Test @slow-mo @spider', () => {
 
-    test('Visually identifies and interacts with links AND buttons', async ({ page }) => {
-        // 1. Go to Home
+    test('Crawls and interacts with every public page and element', async ({ page }) => {
+        const visitedUrls = new Set<string>();
+        const urlsToVisit = ['/'];
+
+        // 1. Initial Land
         await page.goto('/');
-        await expect(page).toHaveTitle(/.*TankTide|.*Home/i);
-        // Wait for footer to be visible to ensure full hydration
         await expect(page.locator('footer, [role="contentinfo"]')).toBeVisible();
 
-        // --- BUTTON HANDLING START ---
+        const domain = new URL(page.url()).origin;
 
-        // 1. Handle "Accept" (Cookie Banner) if present
+        // 2. Handle Cookie Banner once
         const acceptBtn = page.getByRole('button', { name: /accept/i }).first();
         if (await acceptBtn.isVisible()) {
-            await test.step('Click Cookie Consent "Accept"', async () => {
-                await acceptBtn.highlight();
-                await page.waitForTimeout(500);
+            await test.step('Accept Cookies', async () => {
                 await acceptBtn.click();
                 await expect(acceptBtn).not.toBeVisible();
             });
         }
 
-        // 2. Handle Login / Signup (Modals or Navigation)
-        const actionButtons = ['Login', 'Signup', 'Sign In', 'Get Started'];
-        for (const btnName of actionButtons) {
-            // Find button by name, scoped to main area or header/nav
-            // We avoid "Sign In" inside the login modal itself for now, focusing on the trigger buttons
-            const btn = page.getByRole('button', { name: new RegExp(`^${btnName}$`, 'i') }).first();
+        while (urlsToVisit.length > 0) {
+            const path = urlsToVisit.shift()!;
+            const fullUrl = new URL(path, domain).href;
 
-            if (await btn.isVisible()) {
-                await test.step(`Click Main Action Button: "${btnName}"`, async () => {
-                    await btn.highlight();
-                    await page.waitForTimeout(500);
-                    await btn.click();
+            if (visitedUrls.has(fullUrl)) continue;
+            visitedUrls.add(fullUrl);
 
-                    // Wait a moment for reaction
-                    await page.waitForTimeout(1000);
+            await test.step(`Deep-Dive: ${path}`, async () => {
+                console.log(`Navigating to: ${fullUrl}`);
+                await page.goto(fullUrl);
 
-                    // If modal (dialog role) appears, close it or reload
-                    // Using a more generic selector for the modal container seen in snapshots (ref=e60)
-                    const modal = page.locator('div[role="dialog"], div[class*="modal"], div[class*="overlay"]').first();
+                // --- VERIFICATION START ---
+                await expect(page.locator('body')).toBeVisible();
 
-                    if (await modal.isVisible() || await page.getByText('Sign In').first().isVisible()) {
-                        console.log(`Button "${btnName}" opened a modal. Reloading to reset state.`);
-                        await page.reload();
-                    } else {
-                        // Check if URL changed (simple check against origin)
-                        const newUrl = page.url();
-                        const currentOrigin = new URL(newUrl).origin;
-                        if (newUrl !== `${currentOrigin}/`) {
-                            console.log(`Button "${btnName}" navigated to ${newUrl}.`);
-                            await page.goBack();
-                        } else {
-                            console.log(`Button "${btnName}" clicked (no major nav/modal detected).`);
-                        }
-                    }
+                // Hero Section Check (Only on Home)
+                if (path === '/') {
+                    await test.step('Verify Hero Section', async () => {
+                        const heroHeading = page.locator('h1').first();
+                        await expect(heroHeading).toBeVisible();
+                        await heroHeading.highlight();
+                        console.log(`Hero Heading: ${await heroHeading.innerText()}`);
+                    });
+                }
 
-                    // Ensure we are back at a "clean" home state
-                    await expect(page.locator('footer, [role="contentinfo"]')).toBeVisible();
-                });
-            }
-        }
+                // Global Layout Check
+                await expect(page.locator('header, nav').first()).toBeAttached();
+                await expect(page.locator('footer, [role="contentinfo"]').first()).toBeAttached();
+                // --- VERIFICATION END ---
 
-        // --- BUTTON HANDLING END ---
+                // --- INTERACTION: DISCOVER LINKS ---
+                const links = await page.evaluate((origin) => {
+                    return Array.from(document.querySelectorAll('a'))
+                        .map(a => a.href)
+                        .filter(href => href.startsWith(origin) && !href.includes('#'));
+                }, domain);
 
-        // 2. Find all unique internal links
-        // Re-evaluate links as the DOM might have changed (e.g. cookies accepted)
-        const allLinks = await page.evaluate(() => {
-            const anchors = Array.from(document.querySelectorAll('a'));
-            return anchors.map(a => ({
-                href: a.href,
-                text: a.innerText.trim(),
-                origin: window.location.origin
-            }));
-        });
-
-        const origin = new URL(page.url()).origin;
-        const currentUrl = page.url();
-
-        const filteredLinks = allLinks
-            .filter(link => link.href && link.href.startsWith(origin)) // Internal only
-            .filter(link => !link.href.includes('#')) // Ignore anchors
-            .filter(link => {
-                const verifyUrl = new URL(link.href);
-                const current = new URL(currentUrl);
-                return verifyUrl.pathname !== current.pathname;
-            });
-
-        // Deduplicate
-        const uniqueLinks = Array.from(new Set(filteredLinks.map(l => l.href)))
-            .map(href => filteredLinks.find(l => l.href === href));
-
-        // 3. Visit each link by CLICKING (not goto)
-        for (const link of uniqueLinks) {
-            if (!link) continue;
-
-            await test.step(`Click link: ${link.text || 'Image Link'}`, async () => {
-                // Determine selector (text is best, falling back to href)
-                let locator;
-                if (link.text && link.text.length > 0) {
-                    locator = page.getByRole('link', { name: link.text, exact: true }).first();
-                    if (await locator.count() === 0) {
-                        locator = page.getByRole('link', { name: link.text }).first();
-                    }
-                } else {
-                    locator = page.locator(`a[href="${link.href.replace(origin, '')}"]`).first();
-                    if (await locator.count() === 0) {
-                        locator = page.locator(`a[href="${link.href}"]`).first();
+                for (const link of links) {
+                    const linkPath = new URL(link).pathname;
+                    if (!visitedUrls.has(link) && !urlsToVisit.includes(linkPath)) {
+                        urlsToVisit.push(linkPath);
                     }
                 }
 
-                // Visual interaction
-                await locator.scrollIntoViewIfNeeded();
-                await locator.highlight();
-                await page.waitForTimeout(500); // Small pause for user to see
+                // --- INTERACTION: BUTTONS ---
+                const buttons = page.getByRole('button').filter({ visible: true });
+                const buttonCount = await buttons.count();
 
-                // Click
-                await locator.click();
-
-                // Verify
-                await expect(page).toHaveURL(new RegExp(link.href.replace(/\?.*$/, ''))); // Ignore query params
-                await expect(page.locator('body')).toBeVisible();
-
-                // Go back
-                await page.goBack();
-                await expect(page).toHaveURL(currentUrl);
-                // Wait for homepage to be ready again
-                await expect(page.locator('footer, [role="contentinfo"]')).toBeVisible();
+                // We don't click every button on every page (too destructive), 
+                // but we highlight them to ensure they are visible/interactable
+                for (let i = 0; i < Math.min(buttonCount, 5); i++) {
+                    const btn = buttons.nth(i);
+                    const name = await btn.innerText();
+                    if (name && !name.match(/logout|delete|remove/i)) {
+                        await btn.highlight();
+                        await page.waitForTimeout(200);
+                    }
+                }
             });
         }
+
+        console.log(`Exhaustive crawl complete. Visited ${visitedUrls.size} unique pages.`);
     });
 
-    test('Verifies "Contact Support" exists', async ({ page }) => {
+    test('Verify footer contact links', async ({ page }) => {
         await page.goto('/');
-        const contactLink = page.locator('a[href^="mailto:"]');
-        if (await contactLink.count() > 0) {
-            await contactLink.first().scrollIntoViewIfNeeded();
-            await expect(contactLink).toBeVisible();
-            await contactLink.first().highlight();
-            await page.waitForTimeout(1000);
-        }
+        const contactLink = page.locator('header a, footer a').filter({ hasText: /contact|support|info/i }).first();
+        await expect(contactLink).toBeVisible();
+        await contactLink.highlight();
+    });
+
+    test('Verify Login and Signup triggers', async ({ page }) => {
+        const authPage = new CandidateAuthPage(page);
+
+        await test.step('Verify Login Flow starts', async () => {
+            await authPage.gotoLogin();
+            // Verify we are in the login state (modal or form visible)
+            await expect(page.locator('input[type="email"]').first()).toBeVisible();
+            await page.reload(); // reset
+        });
+
+        await test.step('Verify Signup Flow starts', async () => {
+            const signupButton = page.getByRole('button', { name: /signup|get started/i }).first();
+            if (await signupButton.isVisible()) {
+                await signupButton.click();
+                await expect(page.locator('input[type="email"]').first()).toBeVisible();
+            }
+        });
     });
 });

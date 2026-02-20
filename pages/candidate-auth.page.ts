@@ -48,4 +48,28 @@ export class CandidateAuthPage {
 
         console.log('Login confirmed: URL changed.');
     }
+
+    async signup(email: string): Promise<void> {
+        console.log('Navigating to home for signup...');
+        await this.page.goto('/', { waitUntil: 'domcontentloaded' });
+
+        const signupButton = this.page.getByRole('button', { name: /signup|get started|join/i }).first();
+        if (await signupButton.isVisible()) {
+            console.log('Clicking Signup button...');
+            await signupButton.click();
+
+            console.log('Waiting for signup form...');
+            const emailInput = this.page.locator('input[type="email"], input[name="email"]').first();
+            await expect(emailInput).toBeVisible({ timeout: 10000 });
+
+            console.log('Filling signup email...');
+            await emailInput.fill(email);
+
+            // Note: We don't complete the full signup here to avoid creating junk accounts,
+            // but we verify the form is interactable.
+            console.log('Signup form verified.');
+        } else {
+            console.log('Signup button not found.');
+        }
+    }
 }
